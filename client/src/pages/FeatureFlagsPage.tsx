@@ -58,7 +58,7 @@ export const FeatureFlagsPage = () => {
                 </p>
               </div>
               <Checkbox
-                checked={enabled}
+                checked={typeof enabled === "boolean" ? enabled : false}
                 disabled={!canEdit}
                 onChange={(checked) =>
                   setFlags((current) => ({
