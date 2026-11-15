@@ -6,11 +6,11 @@ import { bookingService } from "../services/bookingService";
 import type { Booking } from "../types/models";
 import { formatDateTimeInput } from "../utils/date";
 import { canDeleteResources, canEditBooking } from "../utils/permissions";
-
 import {
   validateBookingFormState,
   type BookingFormState,
 } from "../utils/bookingValidation";
+
 type BookingFormTouched = Partial<Record<keyof BookingFormState, boolean>>;
 
 const buildBookingFormState = (booking: Booking): BookingFormState => ({
@@ -33,6 +33,7 @@ export const BookingsPage = () => {
     endsAt: "",
   });
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [createTouched, setCreateTouched] = useState<BookingFormTouched>({});
   const [editTouched, setEditTouched] = useState<
     Record<string, BookingFormTouched>
@@ -50,7 +51,7 @@ export const BookingsPage = () => {
       }
 
       setLoading(true);
-      setCreateError(null);
+      setLoadError(null);
 
       try {
         const nextBookings = await bookingService.list();
@@ -64,7 +65,7 @@ export const BookingsPage = () => {
           ),
         );
       } catch (loadError) {
-        setCreateError(
+        setLoadError(
           loadError instanceof Error
             ? loadError.message
             : "Unable to load bookings",
@@ -135,7 +136,8 @@ export const BookingsPage = () => {
 
   const handleSave = async (bookingId: string) => {
     setBookingErrors((current) => ({ ...current, [bookingId]: "" }));
-    const errors = validateBookingFormState(bookingEdits[bookingId]);
+    const editFormState = bookingEdits[bookingId];
+    const errors = validateBookingFormState(editFormState);
     if (Object.keys(errors).length > 0) {
       setEditTouched((current) => ({
         ...current,
@@ -151,7 +153,7 @@ export const BookingsPage = () => {
     try {
       const updatedBooking = await bookingService.update(
         bookingId,
-        bookingEdits[bookingId],
+        editFormState,
       );
       setBookings((current) =>
         current.map((booking) =>
@@ -214,6 +216,10 @@ export const BookingsPage = () => {
         message="Fetching schedule items."
       />
     );
+  }
+
+  if (loadError) {
+    return <StatusPanel title="Bookings unavailable" message={loadError} />;
   }
 
   return (
