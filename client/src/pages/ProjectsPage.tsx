@@ -5,7 +5,6 @@ import { StatusPanel } from "../components/StatusPanel";
 import { projectService } from "../services/projectService";
 import { taskService } from "../services/taskService";
 import type {
-  Project,
   ProjectCreatePayload,
   ProjectWithTaskCount,
   Task,
@@ -16,7 +15,7 @@ import { canCreateProject, canDeleteResources } from "../utils/permissions";
 
 export const ProjectsPage = () => {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<ProjectWithTaskCount[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [formState, setFormState] = useState<ProjectCreatePayload>({
     name: "",
@@ -36,7 +35,11 @@ export const ProjectsPage = () => {
         projectService.list(),
         taskService.list(),
       ]);
-      setProjects(nextProjects);
+      setProjects(
+        nextProjects.map((project) =>
+          buildProjectWithTaskCount(project, nextTasks),
+        ),
+      );
       setTasks(nextTasks);
     } catch (error) {
       setLoadError(
@@ -58,7 +61,10 @@ export const ProjectsPage = () => {
 
     try {
       const project = await projectService.create(formState);
-      setProjects((current) => [project, ...current]);
+      setProjects((current) => [
+        buildProjectWithTaskCount(project, tasks),
+        ...current,
+      ]);
       setFormState({ name: "", description: "" });
     } catch (submitError) {
       setActionError(
@@ -86,10 +92,6 @@ export const ProjectsPage = () => {
       );
     }
   };
-
-  const projectsWithTaskCounts: ProjectWithTaskCount[] = projects.map(
-    (project) => buildProjectWithTaskCount(project, tasks),
-  );
 
   if (loading) {
     return (
@@ -157,7 +159,7 @@ export const ProjectsPage = () => {
         )}
         {projects.length ? (
           <ul className="space-y-4">
-            {projectsWithTaskCounts.map((project) => (
+            {projects.map((project) => (
               <li key={project._id}>
                 <article className="rounded-3xl bg-white p-6 shadow-sm">
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
