@@ -1,0 +1,757 @@
+{
+  "info": {
+    "name": "WorkspaceHub Comments API Permissions",
+    "description": "Run in order against local WorkspaceHub seeded with npm run seed. Uses temporary comments for successful mutations and verifies the seeded owner comment survives denied writes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "ownerToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "memberToken",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "protectedCommentId",
+      "value": ""
+    },
+    {
+      "key": "memberCommentId",
+      "value": ""
+    },
+    {
+      "key": "ownerCommentId",
+      "value": ""
+    },
+    {
+      "key": "adminCommentId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Log in as owner",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"owner@workspacehub.dev\",\n  \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Expected account role\", () => pm.expect(json.data.user.role).to.equal(\"owner\"));",
+              "  pm.test(\"Token returned\", () => pm.expect(json.data.token).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"ownerToken\", json.data.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Log in as admin",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@workspacehub.dev\",\n  \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Expected account role\", () => pm.expect(json.data.user.role).to.equal(\"admin\"));",
+              "  pm.test(\"Token returned\", () => pm.expect(json.data.token).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"adminToken\", json.data.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Log in as member",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"member@workspacehub.dev\",\n  \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Expected account role\", () => pm.expect(json.data.user.role).to.equal(\"member\"));",
+              "  pm.test(\"Token returned\", () => pm.expect(json.data.token).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"memberToken\", json.data.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Find seeded task",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  const task = json.data.find(item => item.title === \"Audit current navigation\");",
+              "  pm.test(\"Seeded task exists\", () => pm.expect(task).to.exist);",
+              "  if (task) pm.collectionVariables.set(\"taskId\", task._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Find protected owner comment",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  const comment = json.data.find(item => item.content === \"Start by mapping the routes in the main navigation.\");",
+              "  pm.test(\"Protected seed comment exists\", () => pm.expect(comment).to.exist);",
+              "  if (comment) pm.collectionVariables.set(\"protectedCommentId\", comment._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Member cannot edit the owner’s comment",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{protectedCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{memberToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Forbidden change\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+              "if (pm.response.code === 403) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"No response data\", () => pm.expect(json.data).to.equal(null));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Member cannot delete the owner’s comment",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{protectedCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{memberToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+              "if (pm.response.code === 403) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"No response data\", () => pm.expect(json.data).to.equal(null));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create separate comment for member",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{memberToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: member fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Comment ID returned\", () => pm.expect(json.data._id).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"memberCommentId\", json.data._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "member can edit comment",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{memberCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{memberToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: member edit\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Correct comment updated\", () => pm.expect(json.data._id).to.equal(pm.collectionVariables.get(\"memberCommentId\")));",
+              "  pm.test(\"Edited content returned\", () => pm.expect(json.data.content).to.equal(\"Permission check: member edit\"));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "member can delete comment",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{memberCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{memberToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Deletion confirmed\", () => pm.expect(json.data.deleted).to.equal(true));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create separate comment for owner",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{adminToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: owner fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Comment ID returned\", () => pm.expect(json.data._id).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"ownerCommentId\", json.data._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "owner can edit comment",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{ownerCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: owner edit\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Correct comment updated\", () => pm.expect(json.data._id).to.equal(pm.collectionVariables.get(\"ownerCommentId\")));",
+              "  pm.test(\"Edited content returned\", () => pm.expect(json.data.content).to.equal(\"Permission check: owner edit\"));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "owner can delete comment",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{ownerCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Deletion confirmed\", () => pm.expect(json.data.deleted).to.equal(true));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create separate comment for admin",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: admin fixture\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Comment ID returned\", () => pm.expect(json.data._id).to.be.a(\"string\").and.not.empty);",
+              "  pm.collectionVariables.set(\"adminCommentId\", json.data._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "admin can edit comment",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{adminCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{adminToken}}"
+            }
+          ]
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Permission check: admin edit\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Correct comment updated\", () => pm.expect(json.data._id).to.equal(pm.collectionVariables.get(\"adminCommentId\")));",
+              "  pm.test(\"Edited content returned\", () => pm.expect(json.data.content).to.equal(\"Permission check: admin edit\"));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "admin can delete comment",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{adminCommentId}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{adminToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Deletion confirmed\", () => pm.expect(json.data.deleted).to.equal(true));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Check preserved comment and deleted fixtures",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "type": "string",
+              "value": "{{ownerToken}}"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  const protectedComment = json.data.find(item => item._id === pm.collectionVariables.get(\"protectedCommentId\"));",
+              "  pm.test(\"Protected comment remains unchanged\", () => pm.expect(protectedComment && protectedComment.content).to.equal(\"Start by mapping the routes in the main navigation.\"));",
+              "  pm.test(\"member fixture is gone\", () => pm.expect(json.data.map(item => item._id)).not.to.include(pm.collectionVariables.get(\"memberCommentId\")));",
+              "  pm.test(\"owner fixture is gone\", () => pm.expect(json.data.map(item => item._id)).not.to.include(pm.collectionVariables.get(\"ownerCommentId\")));",
+              "  pm.test(\"admin fixture is gone\", () => pm.expect(json.data.map(item => item._id)).not.to.include(pm.collectionVariables.get(\"adminCommentId\")));",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

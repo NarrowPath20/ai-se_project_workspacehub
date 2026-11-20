@@ -5,10 +5,16 @@ WorkspaceHub tracks projects and tasks across organizations in an npm workspaces
 ## Project structure
 
 - Derive Mongoose document types in `server/src/models/` with `InferSchemaType<typeof schema> & { _id: Types.ObjectId }`. Register models with their document type, as in `model<TaskDocument>("Task", taskSchema)`.
-- Routes wire middleware and wrap controllers in `asyncHandler`. Controllers extract request data, call services, and respond with `sendSuccess(res, data)`. Services handle business logic, database access, and permission enforcement. Follow `taskRoutes.ts`, `taskController.ts`, and `taskService.ts` for a complete example. See `server/src/app.ts` for route mounting and middleware.
+- Controllers extract request data and call services. Services handle business logic, database access, and permission enforcement. Follow `taskRoutes.ts`, `taskController.ts`, and `taskService.ts` for a complete example. See `server/src/app.ts` for route mounting and middleware.
 - Put shared `canManage*` authorization rules in `server/src/services/permissionService.ts` and call them from services.
 - Define frontend model and reusable payload types in `client/src/types/models.ts`. Derive update payloads as `Partial<CreatePayload>` from the writable create fields. Keep API calls in resource-specific files under `client/src/services/` and use `unwrapResponse`.
 - Pages load data and own page state. Components receive data through props. See `client/src/pages/TasksPage.tsx` for data loading, Tailwind styles, and permission-gated UI.
+
+## API conventions
+
+- Protect resource routes with `requireAuth` before registering their handlers. Follow the task router's `router.use(asyncHandler(requireAuth))` pattern.
+- Wrap every async controller in `asyncHandler` at route registration. It forwards rejected promises to Express's centralized error handler via `next`.
+- Return successful controller responses through `sendSuccess(res, data)`. Pass an explicit status when needed, such as `201` for creation.
 
 ## Conventions
 

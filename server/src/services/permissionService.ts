@@ -29,6 +29,10 @@ export const canDeleteResource = (actor: AuthPayload): boolean => {
   return isPrivilegedRole(actor.role);
 };
 
+export const canManageComment = (actor: AuthPayload, authorId: string) => {
+  return isPrivilegedRole(actor.role) || actor.userId === authorId;
+};
+
 export const canManageUsers = (
   actor: AuthPayload,
   targetUserId: string,

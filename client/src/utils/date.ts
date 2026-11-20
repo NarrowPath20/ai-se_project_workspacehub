@@ -26,3 +26,23 @@ export const formatDateTimeInput = (value: string | null | undefined) => {
 
   return new Date(value).toISOString().slice(0, 16);
 };
+
+export function formatDateMonthAndYear(
+  dateString: string | null | undefined
+): string {
+  if (!dateString) {
+    return "";
+  }
+
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}

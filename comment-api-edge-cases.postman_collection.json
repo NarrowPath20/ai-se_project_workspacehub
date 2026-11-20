@@ -1,0 +1,947 @@
+{
+  "info": {
+    "name": "WorkspaceHub Comments API Edge Cases",
+    "description": "Run in order against a disposable local database seeded with npm run seed. Checks request validation and removes its temporary fixture.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "ownerId",
+      "value": ""
+    },
+    {
+      "key": "organizationId",
+      "value": ""
+    },
+    {
+      "key": "taskId",
+      "value": ""
+    },
+    {
+      "key": "commentId",
+      "value": ""
+    },
+    {
+      "key": "baseline",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Log in as seed owner",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/auth/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"owner@workspacehub.dev\",\n  \"password\": \"Password123!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.collectionVariables.set(\"token\", json.data.token);",
+              "  pm.collectionVariables.set(\"ownerId\", json.data.user._id);",
+              "  pm.collectionVariables.set(\"organizationId\", json.data.user.organizationId);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Find seeded task",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  const task = json.data.find(item => item.title === \"Audit current navigation\");",
+              "  pm.test(\"Seed task exists\", () => pm.expect(task).to.exist);",
+              "  if (task) pm.collectionVariables.set(\"taskId\", task._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Record original comments",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.collectionVariables.set(\"baseline\", JSON.stringify(json.data.map(({ _id, content, authorId, taskId, organizationId }) => ({ _id, content, authorId, taskId, organizationId }))));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject missing content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject empty content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject whitespace only",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \" \\t\\n \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject numeric content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": 42\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject boolean content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": false\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject null content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject array content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": [\n    \"text\"\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject object content",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": {\n    \"text\": \"comment\"\n  }\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject array body",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[]",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject malformed JSON",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\"content\":",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject malformed task ID",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/not-an-id/comments"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "if (pm.response.code === 404) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject missing task",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/000000000000000000000000/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Valid text\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "if (pm.response.code === 404) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Create with padded content and extra fields",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"  Edge-case fixture  \",\n  \"authorId\": \"000000000000000000000000\",\n  \"taskId\": \"000000000000000000000000\",\n  \"organizationId\": \"000000000000000000000000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Text is trimmed\", () => pm.expect(json.data.content).to.equal(\"Edge-case fixture\"));",
+              "  pm.test(\"authorId comes from trusted context\", () => pm.expect(json.data.authorId).to.equal(pm.collectionVariables.get(\"ownerId\")));",
+              "  pm.test(\"taskId comes from trusted context\", () => pm.expect(json.data.taskId).to.equal(pm.collectionVariables.get(\"taskId\")));",
+              "  pm.test(\"organizationId comes from trusted context\", () => pm.expect(json.data.organizationId).to.equal(pm.collectionVariables.get(\"organizationId\")));",
+              "  pm.collectionVariables.set(\"commentId\", json.data._id);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject missing content on update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject blank content on update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \" \\t \"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject wrong type content on update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": []\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject null content on update",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": null\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+              "if (pm.response.code === 400) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify rejected updates left the fixture unchanged",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  const fixture = json.data.find(comment => comment._id === pm.collectionVariables.get(\"commentId\"));",
+              "  pm.test(\"Fixture text is unchanged\", () => pm.expect(fixture && fixture.content).to.equal(\"Edge-case fixture\"));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject malformed comment ID",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/not-an-id",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"Valid text\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "if (pm.response.code === 404) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reject missing comment",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/000000000000000000000000"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+              "if (pm.response.code === 404) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(false));",
+              "  pm.test(\"Error message returned\", () => pm.expect(json.error.message).to.be.a(\"string\").and.not.empty);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Update with padded content and extra fields",
+      "request": {
+        "method": "PATCH",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"content\": \"  Edge-case fixture edited  \",\n  \"authorId\": \"000000000000000000000000\",\n  \"taskId\": \"000000000000000000000000\",\n  \"organizationId\": \"000000000000000000000000\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Text is trimmed\", () => pm.expect(json.data.content).to.equal(\"Edge-case fixture edited\"));",
+              "  pm.test(\"authorId comes from trusted context\", () => pm.expect(json.data.authorId).to.equal(pm.collectionVariables.get(\"ownerId\")));",
+              "  pm.test(\"taskId comes from trusted context\", () => pm.expect(json.data.taskId).to.equal(pm.collectionVariables.get(\"taskId\")));",
+              "  pm.test(\"organizationId comes from trusted context\", () => pm.expect(json.data.organizationId).to.equal(pm.collectionVariables.get(\"organizationId\")));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Delete temporary fixture",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments/{{commentId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Deletion confirmed\", () => pm.expect(json.data.deleted).to.equal(true));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Verify original comments are unchanged",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/tasks/{{taskId}}/comments"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+              "if (pm.response.code === 200) {",
+              "  const json = pm.response.json();",
+              "  pm.test(\"Response envelope\", () => pm.expect(json.success).to.equal(true));",
+              "  pm.test(\"Original records are identical\", () => pm.expect(JSON.stringify(json.data.map(({ _id, content, authorId, taskId, organizationId }) => ({ _id, content, authorId, taskId, organizationId })))).to.equal(pm.collectionVariables.get(\"baseline\")));",
+              "}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

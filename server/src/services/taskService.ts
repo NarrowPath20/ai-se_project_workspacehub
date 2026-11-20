@@ -1,4 +1,5 @@
 import { Types } from "mongoose";
+import { Comment } from "../models/Comment";
 import { Project } from "../models/Project";
 import { Task } from "../models/Task";
 import { User } from "../models/User";
@@ -43,7 +44,28 @@ const ensureAssigneeInOrganization = async (
 
 export const listTasks = async (organizationId: string, projectId?: string) => {
   const query = projectId ? { organizationId, projectId } : { organizationId };
-  return Task.find(query).sort({ createdAt: -1 });
+  const tasks = await Task.find(query).sort({ createdAt: -1 }).lean();
+  if (tasks.length === 0) {
+    return [];
+  }
+
+  const comments = await Comment.find({
+    organizationId,
+    taskId: { $in: tasks.map((task) => task._id) },
+  })
+    .select("taskId -_id")
+    .lean();
+
+  const counts = new Map<string, number>();
+  for (const { taskId } of comments) {
+    const id = String(taskId);
+    counts.set(id, (counts.get(id) ?? 0) + 1);
+  }
+
+  return tasks.map((task) => ({
+    ...task,
+    commentCount: counts.get(String(task._id)) ?? 0,
+  }));
 };
 
 export const createTask = async (
@@ -166,6 +188,10 @@ export const deleteTask = async (actor: AuthPayload, id: string) => {
     throw new AppError("You do not have permission to delete this task", 403);
   }
 
+  await Comment.deleteMany({
+    organizationId: actor.organizationId,
+    taskId: task._id,
+  });
   await task.deleteOne();
   return { deleted: true };
 };
