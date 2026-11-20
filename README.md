@@ -1,17 +1,24 @@
 # WorkspaceHub
 
-WorkspaceHub is a project in TripleTen's AI Software Engineering program. It is a full-stack MERN application built with TypeScript on both the client and server. It supports multi-tenant organizations, role-based access, projects, tasks, bookings, and per-organization feature flags.
+WorkspaceHub is a workspace for organizations to manage projects, assign tasks, and coordinate bookings. Each organization has its own data and role-based permissions.
 
-Students are given this as starting code and, over the course of two sprints, accomplish a number of fixes, refactorings, and new features. The focus of these sprints is on safely and effectively using AI in an existing codebase.
+[Open the live WorkspaceHub app](https://ai-se-project-workspacehub-bk4p-git-workspacehub-part-2-narrow5.vercel.app/).
 
-## Starting stack
+## Features
+
+- Track projects, task counts, assignments, priorities, and due dates.
+- Open collapsible task discussions with comment counts and on-demand loading. Authors can edit and delete their own comments, and organization owners and admins can manage all comments in their organization.
+- Schedule bookings with overlap checks and configure features per organization.
+
+## Tech stack
 
 - React + Vite + TypeScript
 - Tailwind CSS
 - Node.js + Express + TypeScript
-- MongoDB + Mongoose
+- MongoDB Atlas in the deployed app, with Mongoose on the server
 - JWT authentication
 - Context API for client state
+- Vercel for the Vite frontend and Express API
 
 ## Project Structure
 
@@ -23,48 +30,43 @@ workspacehub/
 
 ## Setup
 
-1. Install dependencies:
+1. Install dependencies from the repository root.
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-2. Copy environment examples and fill them in:
+2. Copy the environment examples and fill them in using the table below.
 
-```bash
-cp server/.env.example server/.env
-cp client/.env.example client/.env
-```
-
-Recommended local values:
-
-```env
-# server/.env
-PORT=5001
-MONGODB_URI=mongodb://127.0.0.1:27017/workspacehub
-JWT_SECRET=super-secret-jwt-key
-CLIENT_ORIGIN=http://localhost:5173
-```
-
-```env
-# client/.env
-VITE_API_URL=http://localhost:5001
-```
+   ```bash
+   cp server/.env.example server/.env
+   cp client/.env.example client/.env
+   ```
 
 3. Start MongoDB locally or point `MONGODB_URI` at an existing instance.
 
-4. Seed demo data:
+4. Seed demo data. This replaces existing WorkspaceHub data in the configured database, so use a local demo database.
 
-```bash
-npm run seed
-```
+   ```bash
+   npm run seed
+   ```
 
-5. Run the server and client in separate terminals:
+5. Run the server and client in separate terminals, then open http://localhost:5173.
 
-```bash
-npm run dev:server
-npm run dev:client
-```
+   ```bash
+   npm run dev:server
+   npm run dev:client
+   ```
+
+## Environment variables
+
+| File          | Variable        | Purpose and local value                                                                 |
+| ------------- | --------------- | --------------------------------------------------------------------------------------- |
+| `server/.env` | `PORT`          | Express port, typically `5001` locally.                                                 |
+| `server/.env` | `MONGODB_URI`   | Database connection URI, such as `mongodb://127.0.0.1:27017/workspacehub`.              |
+| `server/.env` | `JWT_SECRET`    | Signs login tokens. Use a locally generated secret and store deployed values in Vercel. |
+| `server/.env` | `CLIENT_ORIGIN` | Allowed frontend origin, typically `http://localhost:5173`.                             |
+| `client/.env` | `VITE_API_URL`  | API origin without the `/api` suffix, typically `http://localhost:5001`.                |
 
 ## Demo Users
 
@@ -79,6 +81,10 @@ The seed script creates one organization with these users:
 - `npm run dev:server`
 - `npm run dev:client`
 - `npm run build`
+- `npm run typecheck`
+- `npm run lint`
+- `npm run format:check`
+- `npm run test --workspace client`
 - `npm run seed`
 
 ## Notes

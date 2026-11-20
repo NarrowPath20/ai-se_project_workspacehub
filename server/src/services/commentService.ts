@@ -58,7 +58,10 @@ const getManageableComment = async (
   );
 
   if (!canManageComment(actor, String(comment.authorId))) {
-    throw new AppError("You do not have permission to manage this comment", 403);
+    throw new AppError(
+      "You do not have permission to manage this comment",
+      403,
+    );
   }
 
   return comment;

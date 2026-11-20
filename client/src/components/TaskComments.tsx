@@ -100,9 +100,10 @@ export const TaskComments = ({
       const updated = await commentService.update(taskId, comment._id, {
         content,
       });
-      setComments((current) =>
-        current?.map((item) => (item._id === updated._id ? updated : item)) ??
-        null,
+      setComments(
+        (current) =>
+          current?.map((item) => (item._id === updated._id ? updated : item)) ??
+          null,
       );
       setEditingCommentId(null);
     } catch (error) {
@@ -123,8 +124,9 @@ export const TaskComments = ({
     setManageError(null);
     try {
       await commentService.delete(taskId, comment._id);
-      setComments((current) =>
-        current?.filter((item) => item._id !== comment._id) ?? null,
+      setComments(
+        (current) =>
+          current?.filter((item) => item._id !== comment._id) ?? null,
       );
       if (editingCommentId === comment._id) {
         setEditingCommentId(null);
@@ -208,7 +210,9 @@ export const TaskComments = ({
           {comments && comments.length > 0 && (
             <ul className="space-y-3">
               {comments.map((comment) => {
-                const author = users.find(({ _id }) => _id === comment.authorId);
+                const author = users.find(
+                  ({ _id }) => _id === comment.authorId,
+                );
                 const canManage = canManageComment(user, comment);
                 const isEditing = canManage && editingCommentId === comment._id;
                 return (

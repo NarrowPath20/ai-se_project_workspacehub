@@ -39,6 +39,10 @@ export const canDeleteResources = (user: User | null) => {
   return isPrivilegedRole(user?.role);
 };
 
+export const canCreateProject = (user: User | null) => {
+  return isPrivilegedRole(user?.role);
+};
+
 export const canManageComment = (user: User | null, comment: Comment) => {
   if (!user || user.organizationId !== comment.organizationId) {
     return false;

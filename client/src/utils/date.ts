@@ -28,7 +28,7 @@ export const formatDateTimeInput = (value: string | null | undefined) => {
 };
 
 export function formatDateMonthAndYear(
-  dateString: string | null | undefined
+  dateString: string | null | undefined,
 ): string {
   if (!dateString) {
     return "";
