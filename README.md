@@ -2,7 +2,7 @@
 
 WorkspaceHub is a workspace for organizations to manage projects, assign tasks, and coordinate bookings. Each organization has its own data and role-based permissions.
 
-[Open the live WorkspaceHub app](https://ai-se-project-workspacehub-bk4p-git-workspacehub-part-2-narrow5.vercel.app/).
+[Open the live WorkspaceHub app](https://ai-se-project-workspacehub-bk4p.vercel.app).
 
 ## Features
 
